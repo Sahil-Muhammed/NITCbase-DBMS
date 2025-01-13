@@ -14,9 +14,14 @@ RecBuffer::RecBuffer(int blockNum) : BlockBuffer::BlockBuffer(blockNum) {}
 
 // load the block header into the argument pointer
 int BlockBuffer::getHeader(struct HeadInfo *head) {
-  unsigned char buffer[BLOCK_SIZE];
+  unsigned char *bufferPtr;
 
-  // read the block at this.blockNum into the buffer
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+  if (ret != SUCCESS){
+    return ret;
+  }
+
+  unsigned char buffer[BLOCK_SIZE];
   Disk::readBlock(buffer, this->blockNum);
 
   // populate the numEntries, numAttrs and numSlots fields in *head
@@ -32,6 +37,11 @@ int BlockBuffer::getHeader(struct HeadInfo *head) {
 
 // load the record at slotNum into the argument pointer
 int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
+  unsigned char* bufferPtr;
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+  if (ret != SUCCESS){
+    return ret;
+  }
   struct HeadInfo head;
 
   // get the header using this.getHeader() function
@@ -85,6 +95,34 @@ int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
   memcpy(slotPointer, rec, recordSize);
 
   Disk::writeBlock(buffer,this->blockNum);
+
+  return SUCCESS;
+}
+
+/*
+Used to load a block to the buffer and get a pointer to it.
+NOTE: this function expects the caller to allocate memory for the argument
+*/
+int BlockBuffer::loadBlockAndGetBufferPtr(unsigned char** bufferPtr){
+  //check whether block is already in buffer
+  int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
+
+  if (bufferNum == E_BLOCKNOTINBUFFER){ 
+
+    //allot a free buffer block number
+    bufferNum = StaticBuffer::getFreeBuffer(this->blockNum);
+
+    if (bufferNum == E_OUTOFBOUND){
+
+      return E_OUTOFBOUND;
+
+    }
+
+    Disk::readBlock(StaticBuffer::blocks[bufferNum], this->blockNum);
+  }
+
+  //make pointer point to the buffer block
+  *bufferPtr = StaticBuffer::blocks[bufferNum];
 
   return SUCCESS;
 }

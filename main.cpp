@@ -84,14 +84,32 @@ void ChangeAttributeName(const char* relationName, const char* prevAttrName, con
   }
 }
 
+void Stage_3(int highRelId){
+    for (int i = 0; i < highRelId; ++i){
+      RelCatEntry relCatBuf;
+      RelCacheTable::getRelCatEntry(i, &relCatBuf);
+      printf("Relation name: %s \n", relCatBuf.relName);
+
+      for (int j = 0; j < relCatBuf.numAttrs; ++j){
+        AttrCatEntry attrCatBuf;
+        AttrCacheTable::getAttrCatEntry(i, j, &attrCatBuf);
+        const char* attrType = attrCatBuf.attrType == NUMBER ? "STR" : "NUM";
+        printf(" %s: %s\n", attrCatBuf.attrName, attrType);
+      }
+      printf("\n");
+    }
+}
 int main(int argc, char *argv[]) {
   Disk disk_run;
-
+  StaticBuffer buffer;
+  OpenRelTable cache;
   //Stage1();
 
-  DisplayRecord();
+  //DisplayRecord();
 
-  ChangeAttributeName("Students", "RollNumber", "SrNo");
+  //ChangeAttributeName("Students", "RollNumber", "SrNo");
 
-  DisplayRecord();
+  //DisplayRecord();
+  Stage_3(3);
+  return 0;
 }
