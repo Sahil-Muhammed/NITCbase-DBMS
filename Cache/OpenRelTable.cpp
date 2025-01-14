@@ -26,6 +26,8 @@ OpenRelTable::OpenRelTable(){
   //  and attribute catalog.)
 
   /**** setting up Relation Catalog relation in the Relation Cache Table****/
+
+    //Main aim of this part is to store the relCacheEntries in relCat[] and use it in main()
     RecBuffer relCatBlock(RELCAT_BLOCK);
     Attribute relCatRecord[RELCAT_NO_ATTRS];
 
@@ -61,7 +63,7 @@ OpenRelTable::OpenRelTable(){
         int numAttributes = RelCacheTable::relCache[relId]->relCatEntry.numAttrs;
         head = linkedListOfAttrCacheEntry(numAttributes);
         attrCacheEntry = head;
-        while (numAttributes--){
+        while (attrCacheEntry){
             attrCatBlock.getRecord(attrCatRecord, slotNum);
             AttrCacheTable::recordToAttrCatEntry(attrCatRecord, &(attrCacheEntry->attrCatEntry));
             attrCacheEntry->recId.block = ATTRCAT_BLOCK;
@@ -73,5 +75,17 @@ OpenRelTable::OpenRelTable(){
 }
 
 OpenRelTable::~OpenRelTable(){
-
+    for (int i = 0; i < MAX_OPEN; ++i) {
+        if (RelCacheTable::relCache[i]) {
+            free(RelCacheTable::relCache[i]);
+            RelCacheTable::relCache[i] = nullptr;
+        }
+        AttrCacheEntry* head = AttrCacheTable::attrCache[i];
+        while (head) {
+            AttrCacheEntry* temp = head;
+            head = head->next;
+            free(temp);
+        }
+        AttrCacheTable::attrCache[i] = nullptr;
+    }
 }
