@@ -88,12 +88,12 @@ void Stage_3(int highRelId){
     for (int i = 0; i < highRelId; ++i){
       RelCatEntry relCatBuf;
       RelCacheTable::getRelCatEntry(i, &relCatBuf);
-      printf("Relation name: %s \n", relCatBuf.relName);
+      printf("Relation name: %s\n", relCatBuf.relName);
 
       for (int j = 0; j < relCatBuf.numAttrs; ++j){
         AttrCatEntry attrCatBuf;
         AttrCacheTable::getAttrCatEntry(i, j, &attrCatBuf);
-        const char* attrType = attrCatBuf.attrType == NUMBER ? "STR" : "NUM";
+        const char* attrType = attrCatBuf.attrType == NUMBER ? "NUM" : "STR";
         printf(" %s: %s\n", attrCatBuf.attrName, attrType);
       }
       printf("\n");
@@ -110,6 +110,6 @@ int main(int argc, char *argv[]) {
   //ChangeAttributeName("Students", "RollNumber", "SrNo");
 
   //DisplayRecord();
-  Stage_3(3);
+  Stage_3(6);
   return 0;
 }

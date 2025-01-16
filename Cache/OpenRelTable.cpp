@@ -33,7 +33,7 @@ OpenRelTable::OpenRelTable(){
 
     RelCacheEntry* relCacheEntry = nullptr;
     relCacheEntry = (RelCacheEntry*)malloc(sizeof(RelCacheEntry));
-    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID+1; ++relId){
+    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID+4; ++relId){
         relCatBlock.getRecord(relCatRecord, relId);
         RelCacheTable::recordToRelCatEntry(relCatRecord, &(relCacheEntry->relCatEntry));
         relCacheEntry->recId.block = RELCAT_BLOCK;
@@ -59,16 +59,23 @@ OpenRelTable::OpenRelTable(){
     Attribute attrCatRecord[ATTRCAT_NO_ATTRS];
 
     AttrCacheEntry* attrCacheEntry = nullptr, *head = nullptr;
-    for (int relId = RELCAT_RELID, slotNum = 0; relId < ATTRCAT_RELID+2; ++relId){
+    int slotNum = 0;
+    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID+4; ++relId){
         int numAttributes = RelCacheTable::relCache[relId]->relCatEntry.numAttrs;
         head = linkedListOfAttrCacheEntry(numAttributes);
         attrCacheEntry = head;
+        HeadInfo attrCatHeader;
+        attrCatBlock.getHeader(&attrCatHeader);
         while (attrCacheEntry){
             attrCatBlock.getRecord(attrCatRecord, slotNum);
             AttrCacheTable::recordToAttrCatEntry(attrCatRecord, &(attrCacheEntry->attrCatEntry));
             attrCacheEntry->recId.block = ATTRCAT_BLOCK;
             attrCacheEntry->recId.slot = slotNum++;
             attrCacheEntry = attrCacheEntry->next;
+            if (slotNum == attrCatHeader.numSlots){
+                slotNum = 0;
+                attrCatBlock = RecBuffer(attrCatHeader.rblock);
+            }
         }
         AttrCacheTable::attrCache[relId] = head;
     }

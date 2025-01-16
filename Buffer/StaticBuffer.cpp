@@ -1,10 +1,11 @@
 #include "StaticBuffer.h"
+#include <cstdio>
 
 unsigned char StaticBuffer::blocks[BUFFER_CAPACITY][BLOCK_SIZE];
 struct BufferMetaInfo StaticBuffer::metainfo[BUFFER_CAPACITY];
 
 StaticBuffer::StaticBuffer(){
-    for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY - 1; ++bufferIndex){
+    for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; ++bufferIndex){
         metainfo[bufferIndex].free = true;
     }
 }
@@ -47,7 +48,7 @@ int StaticBuffer::getBufferNum(int blockNum){
 
     for (int index = 0; index < BUFFER_CAPACITY; ++index){
         if (metainfo[index].blockNum == blockNum){
-            return metainfo[index].blockNum;
+            return index;
         }
     }
 
