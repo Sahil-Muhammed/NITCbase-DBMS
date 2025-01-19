@@ -6,7 +6,7 @@ AttrCacheEntry* AttrCacheTable::attrCache[MAX_OPEN];
 
 int AttrCacheTable::getAttrCatEntry(int relId, int attrOffset, AttrCatEntry* attrCatBuffer){
     //check whether relId is out of bounds
-    if (relId < 0 || relId > MAX_OPEN){
+    if (relId < 0 || relId >= MAX_OPEN){
         return E_OUTOFBOUND;
     }
 
@@ -20,6 +20,31 @@ int AttrCacheTable::getAttrCatEntry(int relId, int attrOffset, AttrCatEntry* att
 
         //if the offset matches, then copy entry->attrCatEntry to attrCatBuffer
         if (entry->attrCatEntry.offset == attrOffset){
+            *attrCatBuffer = entry->attrCatEntry;
+            return SUCCESS;
+        }
+    }
+
+    //at given offset, attributeCatEntry is not present in attrCache
+    return E_ATTRNOTEXIST;
+}
+
+int AttrCacheTable::getAttrCatEntry(int relId, char attrName[ATTR_SIZE], AttrCatEntry* attrCatBuffer){
+    //check whether relId is out of bounds
+    if (relId < 0 || relId >= MAX_OPEN){
+        return E_OUTOFBOUND;
+    }
+
+    //check whether given relId is empty in attribute cache
+    if (attrCache[relId] == nullptr){
+        return E_RELNOTOPEN;
+    }
+
+    //search through the attribute cache for finding the offset-th attribute
+    for (AttrCacheEntry* entry = attrCache[relId]; entry != nullptr; entry = entry->next){
+
+        //if the offset matches, then copy entry->attrCatEntry to attrCatBuffer
+        if (strcmp(attrName, entry->attrCatEntry.attrName) == 0){
             *attrCatBuffer = entry->attrCatEntry;
             return SUCCESS;
         }

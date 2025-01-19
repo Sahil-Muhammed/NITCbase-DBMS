@@ -84,7 +84,7 @@ void ChangeAttributeName(const char* relationName, const char* prevAttrName, con
   }
 }
 
-void Stage_3(int highRelId){
+/*void Stage_3(int highRelId){
     for (int i = 0; i < highRelId; ++i){
       RelCatEntry relCatBuf;
       RelCacheTable::getRelCatEntry(i, &relCatBuf);
@@ -98,11 +98,13 @@ void Stage_3(int highRelId){
       }
       printf("\n");
     }
-}
+}*/
 int main(int argc, char *argv[]) {
   Disk disk_run;
   StaticBuffer buffer;
   OpenRelTable cache;
+
+  return FrontendInterface::handleFrontend(argc, argv);
   //Stage1();
 
   //DisplayRecord();
@@ -110,6 +112,6 @@ int main(int argc, char *argv[]) {
   //ChangeAttributeName("Students", "RollNumber", "SrNo");
 
   //DisplayRecord();
-  Stage_3(6);
+  //Stage_3(6);
   return 0;
 }
