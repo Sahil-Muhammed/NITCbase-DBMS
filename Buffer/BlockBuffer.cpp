@@ -62,7 +62,7 @@ int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
   
 
   int recordSize = attrCount * ATTR_SIZE;
-  unsigned char *slotPointer = bufferPtr + (HEADER_SIZE + SLOTMAP_SIZE_RELCAT_ATTRCAT + (recordSize*slotNum));
+  unsigned char *slotPointer = bufferPtr + (HEADER_SIZE + slotCount + (recordSize*slotNum)); //changed SLOTCOUNT_RELATIONCAT to slotCount
 
   // load the record into the rec data structure
   memcpy(rec, slotPointer, recordSize);
@@ -90,7 +90,7 @@ int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
   
 
   int recordSize = attrCount * ATTR_SIZE;
-  unsigned char *slotPointer = buffer + (HEADER_SIZE + SLOTMAP_SIZE_RELCAT_ATTRCAT + (recordSize*slotNum));
+  unsigned char *slotPointer = buffer + (HEADER_SIZE + slotCount + (recordSize*slotNum)); //changed SLOTMAP_SIZE_RELCAT_ATTRCAT to slotCount
 
   // load the record into the rec data structure
   memcpy(slotPointer, rec, recordSize);
@@ -158,3 +158,6 @@ int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType){
   //else implies diff == 0
   return 0;
 }
+
+//Mistakes I made:
+//1. in calculating the offset for slotPointer, I used a constant (whose value was 20) instead of using the variable slotCount.
