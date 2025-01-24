@@ -36,7 +36,7 @@ OpenRelTable::OpenRelTable(){
 
     RelCacheEntry* relCacheEntry = nullptr;
     relCacheEntry = (RelCacheEntry*)malloc(sizeof(RelCacheEntry));
-    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID+4; ++relId){
+    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID; ++relId){
         relCatBlock.getRecord(relCatRecord, relId);
         RelCacheTable::recordToRelCatEntry(relCatRecord, &(relCacheEntry->relCatEntry));
         relCacheEntry->recId.block = RELCAT_BLOCK;
@@ -63,7 +63,7 @@ OpenRelTable::OpenRelTable(){
 
     AttrCacheEntry* attrCacheEntry = nullptr, *head = nullptr;
     int slotNum = 0;
-    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID+4; ++relId){
+    for (int relId = RELCAT_RELID; relId <= ATTRCAT_RELID; ++relId){
         int numAttributes = RelCacheTable::relCache[relId]->relCatEntry.numAttrs;
         head = linkedListOfAttrCacheEntry(numAttributes);
         attrCacheEntry = head;
@@ -115,7 +115,7 @@ int OpenRelTable::getRelId(char relName[ATTR_SIZE]){ //should be unsigned char a
     int relId = -1;
     
     for (int i = 0; i < MAX_OPEN; ++i){
-        if (!strcmp(tableMetaInfo[i].relName, relName)){
+        if (!strcmp(tableMetaInfo[i].relName, relName) && tableMetaInfo[i].free == false){
             relId = i;
             break;
         }
