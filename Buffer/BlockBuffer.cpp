@@ -71,6 +71,14 @@ int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
 }
 
 int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
+
+  unsigned char* bufferPtr;
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+
+  if (ret != SUCCESS){
+    return ret;
+  }
+
   struct HeadInfo head;
 
   // get the header using this.getHeader() function
@@ -80,8 +88,12 @@ int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
   int slotCount = head.numSlots;
   unsigned char buffer[BLOCK_SIZE];
 
+  if (slotNum < 0 || slotNum > slotCount){
+    return E_OUTOFBOUND;
+  }
+
   // read the block at this.blockNum into a buffer
-  Disk::readBlock(buffer, this->blockNum);
+  //Disk::readBlock(buffer, this->blockNum);
 
   /* record at slotNum will be at offset HEADER_SIZE + slotMapSize + (recordSize * slotNum)
      - each record will have size attrCount * ATTR_SIZE
@@ -90,12 +102,18 @@ int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
   
 
   int recordSize = attrCount * ATTR_SIZE;
-  unsigned char *slotPointer = buffer + (HEADER_SIZE + slotCount + (recordSize*slotNum)); //changed SLOTMAP_SIZE_RELCAT_ATTRCAT to slotCount
+  unsigned char *slotPointer = bufferPtr + (HEADER_SIZE + slotCount + (recordSize*slotNum)); //changed SLOTMAP_SIZE_RELCAT_ATTRCAT to slotCount
 
   // load the record into the rec data structure
   memcpy(slotPointer, rec, recordSize);
 
-  Disk::writeBlock(buffer,this->blockNum);
+  int out = StaticBuffer::setDirtyBit(this->blockNum);
+
+  if (out != SUCCESS){
+    printf("Error in setDirtyBit()\n");
+  }
+
+  //Disk::writeBlock(buffer,this->blockNum);
 
   return SUCCESS;
 }
@@ -108,7 +126,18 @@ int BlockBuffer::loadBlockAndGetBufferPtr(unsigned char** bufferPtr){
   //check whether block is already in buffer
   int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
 
-  if (bufferNum == E_BLOCKNOTINBUFFER){ 
+  if (bufferNum != E_BLOCKNOTINBUFFER){
+    for (int i = 0; i < BUFFER_CAPACITY; ++i){
+      if (i == bufferNum){
+        StaticBuffer::metainfo[i].timeStamp = 0;
+      }
+      else{
+        StaticBuffer::metainfo[i].timeStamp += 1;
+      }
+    }
+  }
+  
+  else{ 
 
     //allot a free buffer block number
     bufferNum = StaticBuffer::getFreeBuffer(this->blockNum);
@@ -161,3 +190,4 @@ int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType){
 
 //Mistakes I made:
 //1. in calculating the offset for slotPointer, I used a constant (whose value was 20) instead of using the variable slotCount.
+//2. In setRecord(), still used buffer and disk operation directly instead of using bufferPtr.
