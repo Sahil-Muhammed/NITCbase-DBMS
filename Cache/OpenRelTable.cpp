@@ -206,6 +206,21 @@ int OpenRelTable::closeRel(int relId){
         return E_RELNOTOPEN;
     }
     
+    if (RelCacheTable::relCache[relId]->dirty == true){
+
+        RelCatEntry relCatEntry = RelCacheTable::relCache[relId]->relCatEntry;
+        union Attribute record[6];
+        RelCacheTable::relCatEntryToRecord(&relCatEntry, record);
+
+        RecBuffer relCatBlock(RelCacheTable::relCache[relId]->recId.block);
+
+        relCatBlock.setRecord(record, RelCacheTable::relCache[relId]->recId.slot);
+    }
+
+    for (int i = 0; i < MAX_OPEN; ++i){
+        free(AttrCacheTable::attrCache[i]);
+    }
+
     //free(relCacheEntry);
 
     tableMetaInfo[relId].free = true;
