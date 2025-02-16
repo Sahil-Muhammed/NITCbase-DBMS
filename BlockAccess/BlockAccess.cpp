@@ -296,3 +296,92 @@ int BlockAccess::insert(int relId, Attribute* record){
 }
 
 //mistakes: 1. didn't allocate memory dynamically for slotMap
+
+int BlockAccess::search(int relId, Attribute* record, char attrName[ATTR_SIZE], Attribute attrVal, int op){
+
+    RecId recId;
+    recId = linearSearch(relId, attrName, attrVal, op);
+    if (recId.block == -1 && recId.slot == -1){
+        return E_NOTFOUND;
+    }
+
+    RecBuffer block(recId.block);
+    block.getRecord(record, recId.slot);
+
+    return SUCCESS;
+}
+
+// int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
+
+//     if (!strcmp(relName, RELCAT_RELNAME) || !strcmp(relName, ATTRCAT_RELNAME)){
+//         return E_NOTPERMITTED;
+//     }
+
+//     int relId = OpenRelTable::getRelId(relName);
+//     RelCacheTable::resetSearchIndex(relId);
+
+//     Attribute relNameAttr;
+//     strcpy(relNameAttr.sVal, relName);
+
+//     int op = 0;
+//     RecId recId = linearSearch(relId, RELCAT_ATTR_RELNAME, relNameAttr, op);
+
+//     if (recId.block == -1 && recId.slot == -1){
+//         return E_RELNOTEXIST;
+//     }
+
+//     RecBuffer buffer(recId.block);
+//     Attribute relCatEntryRecord[RELCAT_NO_ATTRS];
+//     buffer.getRecord(relCatEntryRecord, recId.slot);
+
+//     int firstBlk = relCatEntryRecord[RELCAT_FIRST_BLOCK_INDEX].nVal;
+//     int numAttrs = relCatEntryRecord[RELCAT_NO_RECORDS_INDEX].nVal;
+
+//     int current = firstBlk;
+
+//     while (current != -1){
+//         RecBuffer Block(current);
+//         HeadInfo head;
+//         Block.getHeader(&head);
+//         current = head.rblock;
+//         Block.releaseBlock();
+//     }
+
+//     RelCacheTable::resetSearchIndex(ATTRCAT_RELID);
+
+//     int numberofAttributesDeleted = 0;
+
+//     while (true){
+
+//         RecId attrCatRecId = linearSearch(relId, RELCAT_ATTR_RELNAME, relNameAttr, op);
+
+//         if (attrCatRecId.block == -1 && attrCatRecId.slot == -1){
+//             break;
+//         }
+
+//         numberofAttributesDeleted++;
+
+//         RecBuffer delBlock(attrCatRecId.block);
+//         struct HeadInfo head;
+//         delBlock.getHeader(&head);
+//         int recs = head.numAttrs;
+//         int slots = head.numSlots;
+//         Attribute record[recs];
+//         delBlock.getRecord(record, attrCatRecId.slot);
+
+//         int rootBlock = record[ATTRCAT_ROOT_BLOCK_INDEX].nVal;
+
+//         unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * slots);
+//         delBlock.getSlotMap(slotMap);
+//         slotMap[attrCatRecId.slot] = SLOT_UNOCCUPIED;
+//         delBlock.setSlotMap(slotMap);
+
+//         head.numEntries -= 1;
+//         delBlock.setHeader(&head);
+
+//         if (head.numEntries == 0){
+
+//         }
+
+//     }
+// }

@@ -315,3 +315,22 @@ int BlockBuffer::getBlockNum(){
 }
 
 //mistakes: 1. used HeadInfo* head, should have used w/o pointer
+
+void BlockBuffer::releaseBlock(){
+  
+  if (this->blockNum == INVALID_BLOCKNUM){
+    return;
+  }
+
+  else{
+    int bufNum = StaticBuffer::getBufferNum(this->blockNum);
+    if (bufNum == E_BLOCKNOTINBUFFER){
+      printf("Block not in buffer.\n");
+      return;
+    }
+
+    StaticBuffer::metainfo[this->blockNum].free = true;
+    StaticBuffer::blockAllocMap[this->blockNum] = UNUSED_BLK;
+    this->blockNum = INVALID_BLOCKNUM;
+  }
+}
