@@ -194,3 +194,200 @@ int BlockAccess::renameAttribute(char relname[ATTR_SIZE], char oldName[ATTR_SIZE
 
     return SUCCESS;
 }
+<<<<<<< HEAD
+=======
+
+int BlockAccess::insert(int relId, Attribute* record){
+    RelCatEntry relCatEntry;
+    RelCacheTable::getRelCatEntry(relId, &relCatEntry);
+    int blockNum = relCatEntry.firstBlk;
+
+    RecId rec_id = {-1, -1};
+
+    int numOfSlots = relCatEntry.numSlotsPerBlk;
+    int numOfAttrs = relCatEntry.numAttrs;
+
+    int prevBlockNumber = -1;
+
+
+    while (blockNum != -1){
+        RecBuffer block(blockNum);
+        HeadInfo head;
+        block.getHeader(&head);
+
+        unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * numOfSlots);
+        block.getSlotMap(slotMap);
+
+        for (int i = 0; i < numOfSlots; ++i){
+            if (*(slotMap+i) == SLOT_UNOCCUPIED){
+                rec_id.block = blockNum;
+                rec_id.slot = i;
+                break;
+            }
+        }
+
+        if (rec_id.block != -1 && rec_id.slot != -1){
+            break;
+        }
+
+        prevBlockNumber = blockNum;
+        blockNum = head.rblock;
+    }
+    if (rec_id.block == -1 && rec_id.slot == -1){
+        if (relId == RELCAT_RELID){
+            return E_MAXRELATIONS;
+        }
+        RecBuffer Buffer;
+        blockNum = Buffer.getBlockNum();
+        if (blockNum == E_DISKFULL){
+            return E_DISKFULL;
+        }
+
+        rec_id.block = blockNum;
+        rec_id.slot = 0;
+
+        HeadInfo head;
+        head.blockType = REC;
+        head.pblock = -1;
+        head.rblock = -1;
+        //head.lblock = blockNum == -1 ? -1 : prevBlockNumber;
+        head.lblock = -1;
+        head.numAttrs = numOfAttrs;
+        head.numEntries = 0;
+        head.numSlots = numOfSlots;
+        Buffer.setHeader(&head);
+        unsigned char* slotMap = (unsigned char *)malloc(sizeof(unsigned char) * numOfSlots); //should probably allocate memory dynamically, but lets see what happens
+        for (int k = 0; k < numOfSlots; ++k){
+            slotMap[k] = SLOT_UNOCCUPIED;
+        }
+        Buffer.setSlotMap(slotMap);
+
+        if (prevBlockNumber != -1){
+            RecBuffer prevBlock(prevBlockNumber);
+            HeadInfo prevHead;
+            prevBlock.getHeader(&prevHead);
+            prevHead.rblock = rec_id.block;
+            prevBlock.setHeader(&prevHead);
+        }
+
+        else{
+            relCatEntry.firstBlk = rec_id.block;
+            RelCacheTable::setRelCatEntry(relId, &relCatEntry);
+        }
+
+        relCatEntry.lastBlk = rec_id.block;
+        RelCacheTable::setRelCatEntry(relId, &relCatEntry);
+    }
+    RecBuffer NewBlock(rec_id.block);
+    int res = NewBlock.setRecord(record, rec_id.slot);
+    if (res != SUCCESS){
+        printf("Not successful in setRecord.\n");
+        exit(1);
+    }
+
+    unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * numOfSlots);
+    NewBlock.getSlotMap(slotMap);
+    slotMap[rec_id.slot] = SLOT_OCCUPIED;
+    NewBlock.setSlotMap(slotMap);
+
+    HeadInfo newHead;
+    NewBlock.getHeader(&newHead);
+    newHead.numEntries += 1;
+    NewBlock.setHeader(&newHead);
+
+    relCatEntry.numRecs += 1;
+    RelCacheTable::setRelCatEntry(relId, &relCatEntry);
+    return SUCCESS;
+}
+
+//mistakes: 1. didn't allocate memory dynamically for slotMap
+
+int BlockAccess::search(int relId, Attribute* record, char attrName[ATTR_SIZE], Attribute attrVal, int op){
+
+    RecId recId;
+    recId = linearSearch(relId, attrName, attrVal, op);
+    if (recId.block == -1 && recId.slot == -1){
+        return E_NOTFOUND;
+    }
+
+    RecBuffer block(recId.block);
+    block.getRecord(record, recId.slot);
+
+    return SUCCESS;
+}
+
+// int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
+
+//     if (!strcmp(relName, RELCAT_RELNAME) || !strcmp(relName, ATTRCAT_RELNAME)){
+//         return E_NOTPERMITTED;
+//     }
+
+//     int relId = OpenRelTable::getRelId(relName);
+//     RelCacheTable::resetSearchIndex(relId);
+
+//     Attribute relNameAttr;
+//     strcpy(relNameAttr.sVal, relName);
+
+//     int op = 0;
+//     RecId recId = linearSearch(relId, RELCAT_ATTR_RELNAME, relNameAttr, op);
+
+//     if (recId.block == -1 && recId.slot == -1){
+//         return E_RELNOTEXIST;
+//     }
+
+//     RecBuffer buffer(recId.block);
+//     Attribute relCatEntryRecord[RELCAT_NO_ATTRS];
+//     buffer.getRecord(relCatEntryRecord, recId.slot);
+
+//     int firstBlk = relCatEntryRecord[RELCAT_FIRST_BLOCK_INDEX].nVal;
+//     int numAttrs = relCatEntryRecord[RELCAT_NO_RECORDS_INDEX].nVal;
+
+//     int current = firstBlk;
+
+//     while (current != -1){
+//         RecBuffer Block(current);
+//         HeadInfo head;
+//         Block.getHeader(&head);
+//         current = head.rblock;
+//         Block.releaseBlock();
+//     }
+
+//     RelCacheTable::resetSearchIndex(ATTRCAT_RELID);
+
+//     int numberofAttributesDeleted = 0;
+
+//     while (true){
+
+//         RecId attrCatRecId = linearSearch(relId, RELCAT_ATTR_RELNAME, relNameAttr, op);
+
+//         if (attrCatRecId.block == -1 && attrCatRecId.slot == -1){
+//             break;
+//         }
+
+//         numberofAttributesDeleted++;
+
+//         RecBuffer delBlock(attrCatRecId.block);
+//         struct HeadInfo head;
+//         delBlock.getHeader(&head);
+//         int recs = head.numAttrs;
+//         int slots = head.numSlots;
+//         Attribute record[recs];
+//         delBlock.getRecord(record, attrCatRecId.slot);
+
+//         int rootBlock = record[ATTRCAT_ROOT_BLOCK_INDEX].nVal;
+
+//         unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * slots);
+//         delBlock.getSlotMap(slotMap);
+//         slotMap[attrCatRecId.slot] = SLOT_UNOCCUPIED;
+//         delBlock.setSlotMap(slotMap);
+
+//         head.numEntries -= 1;
+//         delBlock.setHeader(&head);
+
+//         if (head.numEntries == 0){
+
+//         }
+
+//     }
+// }
+>>>>>>> 5bb3705446bd0475eda61d930a2a7500ad261ae1
