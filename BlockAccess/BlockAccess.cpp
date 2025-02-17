@@ -150,10 +150,13 @@ int BlockAccess::renameAttribute(char relname[ATTR_SIZE], char oldName[ATTR_SIZE
     int op = 0;
     strcpy(relNameAttr.sVal, relname);
 
+    printf("Before first linearSearch in renameAttribute.\n");
     RecId ret = BlockAccess::linearSearch(RELCAT_RELID, (char *)RELCAT_ATTR_RELNAME, relNameAttr, op);
+    printf("After first linearSearch in renameAttribute.\n");
     if (ret.block == -1 && ret.slot == -1){
         return E_RELNOTEXIST;
     }
+    printf("Did not go through if condition.\n");
 
     RelCacheTable::resetSearchIndex(ATTRCAT_RELID);
     RecId attrToRenameRecId{-1, -1};
@@ -191,108 +194,3 @@ int BlockAccess::renameAttribute(char relname[ATTR_SIZE], char oldName[ATTR_SIZE
 
     return SUCCESS;
 }
-
-int BlockAccess::insert(int relId, Attribute* record){
-    RelCatEntry relCatEntry;
-    RelCacheTable::getRelCatEntry(relId, &relCatEntry);
-    int blockNum = relCatEntry.firstBlk;
-
-    RecId rec_id = {-1, -1};
-
-    int numOfSlots = relCatEntry.numSlotsPerBlk;
-    int numOfAttrs = relCatEntry.numAttrs;
-
-    int prevBlockNumber = -1;
-
-
-    while (blockNum != -1){
-        RecBuffer block(blockNum);
-        HeadInfo head;
-        block.getHeader(&head);
-
-        unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * numOfSlots);
-        block.getSlotMap(slotMap);
-
-        for (int i = 0; i < numOfSlots; ++i){
-            if (*(slotMap+i) == SLOT_UNOCCUPIED){
-                rec_id.block = blockNum;
-                rec_id.slot = i;
-                break;
-            }
-        }
-
-        if (rec_id.block != -1 && rec_id.slot != -1){
-            break;
-        }
-
-        prevBlockNumber = blockNum;
-        blockNum = head.rblock;
-    }
-    if (rec_id.block == -1 && rec_id.slot == -1){
-        if (relId == RELCAT_RELID){
-            return E_MAXRELATIONS;
-        }
-        RecBuffer Buffer;
-        blockNum = Buffer.getBlockNum();
-        if (blockNum == E_DISKFULL){
-            return E_DISKFULL;
-        }
-
-        rec_id.block = blockNum;
-        rec_id.slot = 0;
-
-        HeadInfo head;
-        head.blockType = REC;
-        head.pblock = -1;
-        head.rblock = -1;
-        //head.lblock = blockNum == -1 ? -1 : prevBlockNumber;
-        head.lblock = -1;
-        head.numAttrs = numOfAttrs;
-        head.numEntries = 0;
-        head.numSlots = numOfSlots;
-        Buffer.setHeader(&head);
-        unsigned char* slotMap = (unsigned char *)malloc(sizeof(unsigned char) * numOfSlots); //should probably allocate memory dynamically, but lets see what happens
-        for (int k = 0; k < numOfSlots; ++k){
-            slotMap[k] = SLOT_UNOCCUPIED;
-        }
-        Buffer.setSlotMap(slotMap);
-
-        if (prevBlockNumber != -1){
-            RecBuffer prevBlock(prevBlockNumber);
-            HeadInfo prevHead;
-            prevBlock.getHeader(&prevHead);
-            prevHead.rblock = rec_id.block;
-            prevBlock.setHeader(&prevHead);
-        }
-
-        else{
-            relCatEntry.firstBlk = rec_id.block;
-            RelCacheTable::setRelCatEntry(relId, &relCatEntry);
-        }
-
-        relCatEntry.lastBlk = rec_id.block;
-        RelCacheTable::setRelCatEntry(relId, &relCatEntry);
-    }
-    RecBuffer NewBlock(rec_id.block);
-    int res = NewBlock.setRecord(record, rec_id.slot);
-    if (res != SUCCESS){
-        printf("Not successful in setRecord.\n");
-        exit(1);
-    }
-
-    unsigned char* slotMap = (unsigned char*)malloc(sizeof(unsigned char) * numOfSlots);
-    NewBlock.getSlotMap(slotMap);
-    slotMap[rec_id.slot] = SLOT_OCCUPIED;
-    NewBlock.setSlotMap(slotMap);
-
-    HeadInfo newHead;
-    NewBlock.getHeader(&newHead);
-    newHead.numEntries += 1;
-    NewBlock.setHeader(&newHead);
-
-    relCatEntry.numRecs += 1;
-    RelCacheTable::setRelCatEntry(relId, &relCatEntry);
-    return SUCCESS;
-}
-
-//mistakes: 1. didn't allocate memory dynamically for slotMap

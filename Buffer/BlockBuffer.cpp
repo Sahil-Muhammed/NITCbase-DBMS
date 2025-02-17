@@ -5,23 +5,11 @@
 
 // the declarations for these functions can be found in "BlockBuffer.h"
 
-BlockBuffer::BlockBuffer(char blockType){
-  printf("This constructor is called\n");
-  int res = getFreeBlock(blockType);
-  printf("getFreeBlock working fine.\n");
-  if (res == E_DISKFULL){
-    printf("Disk is full.\n");
-  }
-
-  this->blockNum = res;
-}
-
 BlockBuffer::BlockBuffer(int blockNum) {
   // initialise this.blockNum with the argument
   this->blockNum=blockNum;
 }
 
-RecBuffer::RecBuffer() : BlockBuffer('R') {}
 // calls the parent class constructor
 RecBuffer::RecBuffer(int blockNum) : BlockBuffer::BlockBuffer(blockNum) {}
 
@@ -186,28 +174,6 @@ int RecBuffer::getSlotMap(unsigned char* slotmap){
   return SUCCESS;
 }
 
-int RecBuffer::setSlotMap(unsigned char* slotmap){
-  unsigned char* bufferPtr;
-
-  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
-  if (ret != SUCCESS){
-    return ret;
-  }
-
-  HeadInfo head;
-  BlockBuffer::getHeader(&head);
-
-  int numSlots = head.numSlots;
-  unsigned char* slotMapInBuffer = bufferPtr + HEADER_SIZE;
-  memcpy(slotMapInBuffer, slotmap, numSlots);
-
-  int res = StaticBuffer::setDirtyBit(this->blockNum);
-  if (res != SUCCESS){
-    return res;
-  }
-  return SUCCESS;
-}
-
 int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType){
   double diff;
   if (attrType == STRING)
@@ -225,93 +191,3 @@ int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType){
 //Mistakes I made:
 //1. in calculating the offset for slotPointer, I used a constant (whose value was 20) instead of using the variable slotCount.
 //2. In setRecord(), still used buffer and disk operation directly instead of using bufferPtr.
-
-int BlockBuffer::setHeader(struct HeadInfo* head){
-  unsigned char* bufferPtr;
-
-  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
-  if (ret != SUCCESS){
-    return ret;
-  }
-
-  struct HeadInfo* bufferHeader = (struct HeadInfo*)bufferPtr;
-
-  bufferHeader->numSlots = head->numSlots;
-  bufferHeader->blockType = head->blockType;
-  bufferHeader->lblock = head->lblock;
-  bufferHeader->numAttrs = head->numAttrs;
-  bufferHeader->numEntries = head->numEntries;
-  bufferHeader->numSlots = head->numSlots;
-  bufferHeader->pblock = head->pblock;
-  bufferHeader->rblock = head->rblock;
-
-  int result = StaticBuffer::setDirtyBit(this->blockNum); //not sure if this works
-
-  if (result != SUCCESS){
-    printf("Some error with setDirtyBit().\n");
-    return result;
-  }
-
-  return SUCCESS;
-}
-
-int BlockBuffer::setBlockType(int blockType){
-  unsigned char* bufferPtr;
-
-  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
-  if (ret != SUCCESS){
-    return ret;
-  }
-
-  *((int32_t *)bufferPtr) = blockType;
-
-  StaticBuffer::blockAllocMap[this->blockNum] = blockType; //skeptical; maybe should use bufferPtr
-
-  int result = StaticBuffer::setDirtyBit(this->blockNum); //not sure if this works
-
-  if (result != SUCCESS){
-    printf("Some error with setDirtyBit().\n");
-    return result;
-  }
-
-  return SUCCESS;
-}
-
-int BlockBuffer::getFreeBlock(int blockType){
-  int index = -1;
-  for (int i = 0; i < DISK_BLOCKS; ++i){
-    if (StaticBuffer::blockAllocMap[i] == UNUSED_BLK){ 
-      index = i;
-      break;
-    }
-  }
-  if (index == -1){
-    return E_DISKFULL;
-  }
-
-  this->blockNum = index;
-  int freeBuf = StaticBuffer::getFreeBuffer(this->blockNum);
-  // if (freeBuf == E_OUTOFBOUND){
-  //   return E_OUTOFBOUND;
-  // }
-
-  HeadInfo head;
-  head.pblock = -1;
-  head.rblock = -1;
-  head.lblock = -1;
-  head.numAttrs = 0;
-  head.numEntries = 0;
-  head.numSlots = 0;
-  int ret = setHeader(&head);
-  int ret1 = setBlockType(blockType);  //mistake: used argument blockNum instead of blockType
-  return index;
-}
-
-int BlockBuffer::getBlockNum(){
-  if (this->blockNum == 0){
-    printf("chinna problem chetta\n");
-  }
-  return this->blockNum;
-}
-
-//mistakes: 1. used HeadInfo* head, should have used w/o pointer

@@ -3,14 +3,8 @@
 
 unsigned char StaticBuffer::blocks[BUFFER_CAPACITY][BLOCK_SIZE];
 struct BufferMetaInfo StaticBuffer::metainfo[BUFFER_CAPACITY];
-unsigned char StaticBuffer::blockAllocMap[DISK_BLOCKS];
 
 StaticBuffer::StaticBuffer(){
-
-    for (int i = 0; i < 4; ++i){
-        Disk::readBlock(&blockAllocMap[i], i); //second argument could be i
-    }
-    
     for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; ++bufferIndex){
         metainfo[bufferIndex].free = true;
         metainfo[bufferIndex].dirty = false;
@@ -20,11 +14,6 @@ StaticBuffer::StaticBuffer(){
 }
 
 StaticBuffer::~StaticBuffer() {
-
-    for (int i = 0; i < 4; ++i){
-        Disk::writeBlock(&blockAllocMap[i], i);
-    }
-
     for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; ++bufferIndex){
         if (metainfo[bufferIndex].free == false &&
             metainfo[bufferIndex].dirty == true){
