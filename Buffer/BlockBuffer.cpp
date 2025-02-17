@@ -190,9 +190,7 @@ int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType){
 
 //Mistakes I made:
 //1. in calculating the offset for slotPointer, I used a constant (whose value was 20) instead of using the variable slotCount.
-<<<<<<< HEAD
 //2. In setRecord(), still used buffer and disk operation directly instead of using bufferPtr.
-=======
 //2. In setRecord(), still used buffer and disk operation directly instead of using bufferPtr.
 
 int BlockBuffer::setHeader(struct HeadInfo* head){
@@ -303,4 +301,3 @@ void BlockBuffer::releaseBlock(){
     this->blockNum = INVALID_BLOCKNUM;
   }
 }
->>>>>>> 5bb3705446bd0475eda61d930a2a7500ad261ae1
