@@ -1,6 +1,7 @@
 #include "RelCacheTable.h"
 
 #include <cstring>
+#include <cstdio>
 
 RelCacheEntry* RelCacheTable::relCache[MAX_OPEN];
 
@@ -12,17 +13,19 @@ NOTE: this function expects the caller to allocate memory for `*relCatBuf`
 int RelCacheTable::getRelCatEntry(int relId, RelCatEntry* relCatBuf){
     //check whether relation ID is out of bounds
     if (relId < 0 || relId > MAX_OPEN){
+        printf("out of bound\n");
         return E_OUTOFBOUND;
     }
 
     //check whether the corresponding relation catalog entry in relation cache is empty
     if (relCache[relId] == nullptr){
+        printf("relation not open.\n");
         return E_RELNOTOPEN;
     }
 
     //copy the entry from cache to buffer
     *relCatBuf = relCache[relId]->relCatEntry;
-
+    printf("all working fine in getRelCatEntry.\n");
     return SUCCESS;
 }
 
@@ -84,7 +87,7 @@ int RelCacheTable::setRelCatEntry(int relId, RelCatEntry* relCatBuf){
         return E_RELNOTOPEN;
     }
 
-    relCache[relId]->relCatEntry = *relCatBuf;
+    memcpy(&(relCache[relId]->relCatEntry), relCatBuf, sizeof(RelCatEntry));
 
     relCache[relId]->dirty = true;
 

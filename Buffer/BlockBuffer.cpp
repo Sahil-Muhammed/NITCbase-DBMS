@@ -6,9 +6,20 @@
 // the declarations for these functions can be found in "BlockBuffer.h"
 
 BlockBuffer::BlockBuffer(char blockType){
-  printf("This constructor is called\n");
-  int res = getFreeBlock(blockType);
-  printf("getFreeBlock working fine.\n");
+  int res = 0;
+  switch(blockType){
+    case 'R': 
+      res = getFreeBlock(REC);
+      break;
+    case 'I':
+      res = getFreeBlock(IND_INTERNAL);
+      break;
+    case 'L':
+      res = getFreeBlock(IND_LEAF);
+      break;
+    default:
+      break;
+  }
   if (res == E_DISKFULL){
     printf("Disk is full.\n");
   }
@@ -241,7 +252,6 @@ int BlockBuffer::setHeader(struct HeadInfo* head){
   bufferHeader->lblock = head->lblock;
   bufferHeader->numAttrs = head->numAttrs;
   bufferHeader->numEntries = head->numEntries;
-  bufferHeader->numSlots = head->numSlots;
   bufferHeader->pblock = head->pblock;
   bufferHeader->rblock = head->rblock;
 
@@ -304,11 +314,11 @@ int BlockBuffer::getFreeBlock(int blockType){
   head.numSlots = 0;
   int ret = setHeader(&head);
   int ret1 = setBlockType(blockType);  //mistake: used argument blockNum instead of blockType
-  return index;
+  return this->blockNum;
 }
 
 int BlockBuffer::getBlockNum(){
-  if (this->blockNum == 0){
+  if (this->blockNum == -1){
     printf("chinna problem chetta\n");
   }
   return this->blockNum;
@@ -318,18 +328,18 @@ int BlockBuffer::getBlockNum(){
 
 void BlockBuffer::releaseBlock(){
   
-  if (this->blockNum == INVALID_BLOCKNUM){
+  if (blockNum == INVALID_BLOCKNUM || StaticBuffer::blockAllocMap[blockNum] == UNUSED_BLK){
+    blockNum == INVALID_BLOCKNUM ? printf("Invalid blockNum.\n") : printf("Block is unused.\n");
     return;
   }
 
   else{
-    int bufNum = StaticBuffer::getBufferNum(this->blockNum);
-    if (bufNum == E_BLOCKNOTINBUFFER){
-      printf("Block not in buffer.\n");
+    int bufNum = StaticBuffer::getBufferNum(blockNum);
+    if (bufNum >= 0 && bufNum < BUFFER_CAPACITY){
+      StaticBuffer::metainfo[bufNum].free = true;
       return;
     }
 
-    StaticBuffer::metainfo[this->blockNum].free = true;
     StaticBuffer::blockAllocMap[this->blockNum] = UNUSED_BLK;
     this->blockNum = INVALID_BLOCKNUM;
   }

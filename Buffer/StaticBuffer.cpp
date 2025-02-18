@@ -8,7 +8,7 @@ unsigned char StaticBuffer::blockAllocMap[DISK_BLOCKS];
 StaticBuffer::StaticBuffer(){
 
     for (int i = 0; i < 4; ++i){
-        Disk::readBlock(&blockAllocMap[i], i); //second argument could be i
+        Disk::readBlock(&blockAllocMap[i*2048], i); //second argument could be i; first argument index should be i*2048, was just i earlier
     }
     
     for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; ++bufferIndex){
@@ -22,7 +22,7 @@ StaticBuffer::StaticBuffer(){
 StaticBuffer::~StaticBuffer() {
 
     for (int i = 0; i < 4; ++i){
-        Disk::writeBlock(&blockAllocMap[i], i);
+        Disk::writeBlock(&blockAllocMap[i*2048], i);
     }
 
     for (int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; ++bufferIndex){
@@ -68,9 +68,10 @@ int StaticBuffer::getFreeBuffer(int blockNum){
             }
         }
 
+        allocatedBuffer = metainfo[largest].blockNum;
+
         if (metainfo[largest].dirty == true){
             Disk::writeBlock(blocks[largest], metainfo[largest].blockNum); //doubtful
-            allocatedBuffer = metainfo[largest].blockNum;
         }
     }
 

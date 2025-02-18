@@ -112,27 +112,30 @@ OpenRelTable::~OpenRelTable(){
 
     if (RelCacheTable::relCache[ATTRCAT_RELID]->dirty == true){
 
-        Attribute record[6];
-        RelCacheTable::relCatEntryToRecord(&RelCacheTable::relCache[ATTRCAT_RELID]->relCatEntry, record);
+        RelCatEntry relCatEntry;
+        RelCacheTable::getRelCatEntry(ATTRCAT_RELID, &relCatEntry);
+        Attribute recordAttrCache[6];
+        RelCacheTable::relCatEntryToRecord(&relCatEntry, recordAttrCache);
         RecId recId = RelCacheTable::relCache[ATTRCAT_RELID]->recId;
         RecBuffer relCatBlock(recId.block);
-        relCatBlock.setRecord(record, recId.slot);
+        relCatBlock.setRecord(recordAttrCache, recId.slot);
     }
 
     free(RelCacheTable::relCache[ATTRCAT_RELID]);
-    RelCacheTable::relCache[ATTRCAT_RELID] = nullptr;
+    //RelCacheTable::relCache[ATTRCAT_RELID] = nullptr;
 
     if (RelCacheTable::relCache[RELCAT_RELID]->dirty == true){
-
-        Attribute record[6];
-        RelCacheTable::relCatEntryToRecord(&RelCacheTable::relCache[RELCAT_RELID]->relCatEntry, record);
-        RecId recId = RelCacheTable:: relCache[RELCAT_RELID]->recId;
-        RecBuffer relCatBlock(recId.block);
-        relCatBlock.setRecord(record, recId.slot);
+        RelCatEntry relCatBuffer;
+        RelCacheTable::getRelCatEntry(RELCAT_RELID, &relCatBuffer);
+        Attribute recordRelCache[6];
+        RelCacheTable::relCatEntryToRecord(&relCatBuffer, recordRelCache);
+        RecId recId = RelCacheTable::relCache[RELCAT_RELID]->recId;  //there was a space between RelCacheTable and relCache
+        RecBuffer relCat(recId.block);
+        relCat.setRecord(recordRelCache, recId.slot);
     }
 
     free(RelCacheTable::relCache[RELCAT_RELID]);
-    RelCacheTable::relCache[RELCAT_RELID] = nullptr;
+    //RelCacheTable::relCache[RELCAT_RELID] = nullptr;
 
     for (int i = RELCAT_RELID; i <= ATTRCAT_RELID; ++i){
         AttrCacheEntry* current = AttrCacheTable::attrCache[i];
@@ -140,8 +143,9 @@ OpenRelTable::~OpenRelTable(){
         while (current != nullptr){
             next = current->next;
             if (current->dirty == true){
+                AttrCatEntry attrCatEntry = current->attrCatEntry;
                 Attribute record[6];
-                AttrCacheTable::attrCatEntryToRecord(&current->attrCatEntry, record);
+                AttrCacheTable::attrCatEntryToRecord(&attrCatEntry, record);
                 RecBuffer attrCatBlock(current->recId.block);
                 attrCatBlock.setRecord(record, current->recId.slot);
             }
@@ -236,7 +240,7 @@ int OpenRelTable::openRel(char relName[ATTR_SIZE]){ //should be unsigned char ac
 }
 
 int OpenRelTable::closeRel(int relId){
-    if (relId == 0 || relId == 1){
+    if (relId == RELCAT_RELID || relId == ATTRCAT_RELID){
         return E_NOTPERMITTED;
     }
     if (relId < 0 || relId >= MAX_OPEN){
@@ -257,15 +261,20 @@ int OpenRelTable::closeRel(int relId){
         relCatBlock.setRecord(record, RelCacheTable::relCache[relId]->recId.slot);
     }
 
-    for (int i = 0; i < MAX_OPEN; ++i){
-        free(AttrCacheTable::attrCache[i]);
+    AttrCacheEntry* current = AttrCacheTable::attrCache[relId], *next = nullptr;
+
+    while (current != nullptr){
+        next = current->next;
+        free(current);
+        current = next;
     }
 
     //free(relCacheEntry);
 
     tableMetaInfo[relId].free = true;
+    free(RelCacheTable::relCache[relId]);
     RelCacheTable::relCache[relId] = nullptr;
     AttrCacheTable::attrCache[relId] = nullptr;
-
+    strcpy(tableMetaInfo[relId].relName, "");
     return SUCCESS;
 }
