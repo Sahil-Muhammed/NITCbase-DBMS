@@ -446,3 +446,59 @@ int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
     printf("all working in deleteRelation()\n");
     return SUCCESS;
 }
+
+int BlockAccess::project(int relId, Attribute* record){
+    RecId prevSearchIndex;
+    RelCacheTable::getSearchIndex(relId, &prevSearchIndex);
+
+    int block = prevSearchIndex.block, slot = prevSearchIndex.slot;
+
+    if (prevSearchIndex.block == -1 && prevSearchIndex.slot == -1){
+
+        RelCatEntry relCatBuffer;
+        RelCacheTable::getRelCatEntry(relId, &relCatBuffer);
+
+        block = relCatBuffer.firstBlk;
+        slot = 0;
+    }
+
+    else{
+        block = prevSearchIndex.block;
+        slot = prevSearchIndex.slot + 1;
+    }
+
+    while (block != -1){
+
+        RecBuffer Block(block);
+
+        HeadInfo header;
+        Block.getHeader(&header);
+        int numSlots = header.numSlots;
+        unsigned char slotMap[numSlots];
+
+        if (slot >= numSlots){
+            block = header.rblock;
+            slot = 0;
+            continue;
+        }
+
+        else if (slotMap[slot] == SLOT_UNOCCUPIED){
+            slot++;
+            continue;
+        }
+
+        else{
+            break;
+        }
+    }
+
+    if (block == -1){
+        return E_NOTFOUND;
+    }
+
+    RecId nextRecId = {block, slot};
+    RelCacheTable::setSearchIndex(relId, &nextRecId);
+
+    RecBuffer CopyBlock(nextRecId.block);
+    return CopyBlock.getRecord(record, slot);
+}
