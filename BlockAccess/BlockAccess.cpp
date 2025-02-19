@@ -453,9 +453,10 @@ int BlockAccess::project(int relId, Attribute* record){
 
     int block = prevSearchIndex.block, slot = prevSearchIndex.slot;
 
+    RelCatEntry relCatBuffer;
+
     if (prevSearchIndex.block == -1 && prevSearchIndex.slot == -1){
 
-        RelCatEntry relCatBuffer;
         RelCacheTable::getRelCatEntry(relId, &relCatBuffer);
 
         block = relCatBuffer.firstBlk;
@@ -463,8 +464,7 @@ int BlockAccess::project(int relId, Attribute* record){
     }
 
     else{
-        block = prevSearchIndex.block;
-        slot = prevSearchIndex.slot + 1;
+        slot++;
     }
 
     while (block != -1){
@@ -475,6 +475,7 @@ int BlockAccess::project(int relId, Attribute* record){
         Block.getHeader(&header);
         int numSlots = header.numSlots;
         unsigned char slotMap[numSlots];
+        Block.getSlotMap(slotMap); //didn't call this earlier
 
         if (slot >= numSlots){
             block = header.rblock;

@@ -80,7 +80,7 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
 
     int retValCreateRel = Schema::createRel(targetRel, src_nAttrs, attr_names, attr_types);
 
-    if (retValCreateRel != SUCCESS){
+    if (retValCreateRel < 0){
         return retValCreateRel;
     }
 
@@ -92,16 +92,14 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
     }
 
     int targetRelId = OpenRelTable::getRelId(targetRel);
-    RelCacheTable::resetSearchIndex(targetRelId);
+    RelCacheTable::resetSearchIndex(srcRelId);
 
     Attribute record[src_nAttrs];
-
-    RelCacheTable::resetSearchIndex(targetRelId);
     
-    while (BlockAccess::search(srcRelId, record, attr, attrVal, op) == SUCCESS){
+    while (BlockAccess::search(srcRelId, record, attr, attrVal, op) >= 0){
         int retValinsert = BlockAccess::insert(targetRelId, record);
 
-        if (retValinsert != SUCCESS){
+        if (retValinsert < 0){
             Schema::closeRel(targetRel);
             Schema::deleteRel(targetRel);
             return retValinsert;
@@ -230,15 +228,13 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
     //    return E_ATTRNOTEXIST if it returns the error
     int result = RelCacheTable::getRelCatEntry(srcRelId, &relCatEntry);
 
-    if (result != SUCCESS)
-        return E_ATTRNOTEXIST;
-
     int src_nAttrs = relCatEntry.numAttrs;
 
     char attr_names[src_nAttrs][ATTR_SIZE];
     int attr_types[src_nAttrs];
 
     AttrCatEntry attrCatBuf;
+    //stores all the attrNames and attrTypes
     for (int i = 0; i < src_nAttrs; ++i){
         AttrCacheTable::getAttrCatEntry(srcRelId, i, &attrCatBuf);
         strcpy(attr_names[i], attrCatBuf.attrName);
@@ -247,7 +243,7 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
 
     int retValCreateRel = Schema::createRel(targetRel, src_nAttrs, attr_names, attr_types);
 
-    if (retValCreateRel != SUCCESS){
+    if (retValCreateRel < 0){
         return retValCreateRel;
     }
 
@@ -263,10 +259,10 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
 
     Attribute record[src_nAttrs];
     
-    while (BlockAccess::project(srcRelId, record) == SUCCESS){
+    while (BlockAccess::project(srcRelId, record) >= 0){
         int retValinsert = BlockAccess::insert(targetRelId, record);
 
-        if (retValinsert != SUCCESS){
+        if (retValinsert < 0){
             Schema::closeRel(targetRel);
             Schema::deleteRel(targetRel);
             return retValinsert;
@@ -301,16 +297,16 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], int targ
     AttrCatEntry attrCatBuf;
     for (int i = 0; i < target_nAttrs; ++i){
         int retgetAttrCatEntry = AttrCacheTable::getAttrCatEntry(srcRelId, tar_Attrs[i], &attrCatBuf);
-        if (retgetAttrCatEntry != SUCCESS){
+        if (retgetAttrCatEntry < 0){
             return retgetAttrCatEntry;
         }
         attr_offset[i] = attrCatBuf.offset;
         attr_types[i] = attrCatBuf.attrType;
     }
 
-    int retValCreateRel = Schema::createRel(targetRel, src_nAttrs, tar_Attrs, attr_types);
+    int retValCreateRel = Schema::createRel(targetRel, target_nAttrs, tar_Attrs, attr_types); //used second argument at src_nAttrs earlier
 
-    if (retValCreateRel != SUCCESS){
+    if (retValCreateRel < 0){
         return retValCreateRel;
     }
 
@@ -322,11 +318,11 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], int targ
     }
 
     int targetRelId = OpenRelTable::getRelId(targetRel);
-    RelCacheTable::resetSearchIndex(targetRelId);
+    RelCacheTable::resetSearchIndex(srcRelId);
 
     Attribute record[src_nAttrs];
     
-    while (BlockAccess::project(srcRelId, record) == SUCCESS){
+    while (BlockAccess::project(srcRelId, record) >= 0){
 
         Attribute proj_record[target_nAttrs];
 
@@ -336,7 +332,7 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], int targ
 
         int retValinsert = BlockAccess::insert(targetRelId, proj_record);
 
-        if (retValinsert != SUCCESS){
+        if (retValinsert < 0){
             Schema::closeRel(targetRel);
             Schema::deleteRel(targetRel);
             return retValinsert;

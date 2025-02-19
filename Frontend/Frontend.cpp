@@ -79,7 +79,7 @@ int Frontend::select_attrlist_from_table_where(char relname_source[ATTR_SIZE], c
   //return SUCCESS;
   int retValselect = Algebra::select(relname_source, (char *)TEMP, attribute, op, value);
 
-  if (retValselect != SUCCESS){
+  if (retValselect < 0){
     return retValselect;
   }
 
@@ -95,7 +95,7 @@ int Frontend::select_attrlist_from_table_where(char relname_source[ATTR_SIZE], c
   OpenRelTable::closeRel(tempRelId);
   Schema::deleteRel((char *)TEMP);
 
-  return retValproject == SUCCESS ? SUCCESS : retValproject;
+  return retValproject;
 }
 
 int Frontend::select_from_join_where(char relname_source_one[ATTR_SIZE], char relname_source_two[ATTR_SIZE],
