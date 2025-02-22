@@ -25,7 +25,6 @@ int RelCacheTable::getRelCatEntry(int relId, RelCatEntry* relCatBuf){
 
     //copy the entry from cache to buffer
     *relCatBuf = relCache[relId]->relCatEntry;
-    printf("all working fine in getRelCatEntry.\n");
     return SUCCESS;
 }
 

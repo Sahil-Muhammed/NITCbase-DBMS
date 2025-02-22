@@ -167,29 +167,22 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
 
 int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE]){
 
-    printf("Entered Algebra::insert()\n");
-
     if (!strcmp(relName, ATTRCAT_RELNAME) || !strcmp(relName, RELCAT_RELNAME)){
         return E_NOTPERMITTED;
     }
-    printf("Before getRElId in Algebra::insert()\n");
     int relId = OpenRelTable::getRelId(relName);
-    printf("After getRelId\n");
     if (relId == E_RELNOTOPEN){
         return E_RELNOTOPEN;
     }
 
     RelCatEntry relCatEntry;
     RelCacheTable::getRelCatEntry(relId, &relCatEntry);
-    printf("just after getRElCatEntry in Algebra\n");
     if (relCatEntry.numAttrs != nAttrs){
         return E_NATTRMISMATCH;
     }
 
     union Attribute recordValues[nAttrs];
-    printf("Before for loop in algebra\n");
     for (int i = 0; i < nAttrs; ++i){
-        printf("%d th iteration\n", i);
         AttrCatEntry attrCatEntry;
         AttrCacheTable::getAttrCatEntry(relId, i, &attrCatEntry);
 
@@ -197,7 +190,6 @@ int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE
 
         if (type == NUMBER){
             if (isNumber(record[i])){
-                printf("is a Number and value is %s", record[i]);
                 recordValues[i].nVal = atof(record[i]);
             }
             else{
@@ -206,13 +198,10 @@ int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE
         }
 
         else if (type == STRING){
-            printf("is a string and value is %s\n", record[i]);
             strcpy(recordValues[i].sVal, record[i]);
         }
     }
-    printf("Exited for loop\n");
     int retVal = BlockAccess::insert(relId, recordValues);
-    printf("All good in Algebra Insert()\n");
     return retVal;
 }
 

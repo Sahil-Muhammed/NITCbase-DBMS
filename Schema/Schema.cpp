@@ -56,12 +56,9 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
 
     Attribute relNameAsAttribute;
     strcpy(relNameAsAttribute.sVal, relName);
-    printf("Inside Schema::createRel\n");
     RecId targetRelId = {-1, -1};
     RelCacheTable::resetSearchIndex(RELCAT_RELID);
-    printf("before BlockAccess::linearSearch()\n");
     targetRelId = BlockAccess::linearSearch(RELCAT_RELID, (char *)RELCAT_ATTR_RELNAME, relNameAsAttribute, EQ);
-    printf("after linearSearch()\n");
     if (targetRelId.block != -1 && targetRelId.slot != -1){
         return E_RELEXIST;
     }
@@ -73,7 +70,6 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
             }
         }
     }
-    printf("before initializing reCatRecord\n");
     Attribute relCatRecord[RELCAT_NO_ATTRS];
     strcpy(relCatRecord[RELCAT_REL_NAME_INDEX].sVal, relName);
     relCatRecord[RELCAT_NO_ATTRIBUTES_INDEX].nVal = nAttrs;
@@ -81,15 +77,11 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
     relCatRecord[RELCAT_NO_SLOTS_PER_BLOCK_INDEX].nVal = floor(2016/((16 * nAttrs) + 1));
     relCatRecord[RELCAT_FIRST_BLOCK_INDEX].nVal = -1;
     relCatRecord[RELCAT_LAST_BLOCK_INDEX].nVal = -1;
-    printf("before BlockAccess::insert()\n");
     int retVal = BlockAccess::insert(RELCAT_RELID, relCatRecord);
-    printf("after BlockAccess::insert()\n");
     if (retVal != SUCCESS){
         return retVal;
     }
-    printf("before for loop of Schema::createRel\n");
     for (int i = 0; i < nAttrs; ++i){
-        printf("inside %d th iteration of for loop\n", i);
         Attribute attrCatRecord[6];
         strcpy(attrCatRecord[ATTRCAT_REL_NAME_INDEX].sVal, relName);
         strcpy(attrCatRecord[ATTRCAT_ATTR_NAME_INDEX].sVal, attrs[i]);
@@ -97,12 +89,9 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
         attrCatRecord[ATTRCAT_PRIMARY_FLAG_INDEX].nVal = -1;
         attrCatRecord[ATTRCAT_ROOT_BLOCK_INDEX].nVal = -1;
         attrCatRecord[ATTRCAT_OFFSET_INDEX].nVal = i;
-        printf("before insert() in for loop of createRel\n");
         int ret = BlockAccess::insert(ATTRCAT_RELID, attrCatRecord);
-        printf("after insert(); working\n");
         if (ret != SUCCESS){
             Schema::deleteRel(relName);
-            printf("Schema::deleteRel working\n");
             return E_DISKFULL;
         }
     }
@@ -114,7 +103,6 @@ int Schema::deleteRel(char* relName){
     if (!strcmp(relName, RELCAT_RELNAME) || !strcmp(relName, ATTRCAT_RELNAME)){
         return E_NOTPERMITTED;
     }
-    printf("inside deleteRel with relName is %s\n", relName);
     int relId = OpenRelTable::getRelId(relName);
 
     if (relId != E_RELNOTOPEN){
@@ -122,9 +110,7 @@ int Schema::deleteRel(char* relName){
     }
 
     int ret = BlockAccess::deleteRelation(relName);
-    printf("BlockAccess::deleteRelation() working.\n");
     if (ret != SUCCESS){
-        printf("Some problems.\n");
         return ret;
     }
 

@@ -280,7 +280,7 @@ int BlockBuffer::setBlockType(int blockType){
   int result = StaticBuffer::setDirtyBit(this->blockNum); //not sure if this works
 
   if (result != SUCCESS){
-    printf("Some error with setDirtyBit().\n");
+    printf("Some error with setBlockType().\n");
     return result;
   }
 

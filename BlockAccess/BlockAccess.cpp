@@ -7,15 +7,12 @@
 RecId BlockAccess::linearSearch(int relId, char attrName[ATTR_SIZE], union Attribute attrVal, int op){
     RecId prevRecId;
     RelCacheTable::getSearchIndex(relId, &prevRecId);
-    printf("getSearchIndex() working fine.\n");
     int block = -1;
     int slot = -1;
 
     if (prevRecId.block == -1 && prevRecId.slot == -1){
         RelCatEntry relCatBuf;
-        printf("calling getRelCatEntry\n");
         RelCacheTable::getRelCatEntry(relId, &relCatBuf);
-        printf("getRelCatEntry working fine; next line in linearSearch\n");
         block = relCatBuf.firstBlk;
         slot = 0;
     }
@@ -26,20 +23,15 @@ RecId BlockAccess::linearSearch(int relId, char attrName[ATTR_SIZE], union Attri
 
     RelCatEntry relCatBuffer;
     RelCacheTable::getRelCatEntry(relId, &relCatBuffer);
-    printf("line after getRelCatEntry --> working fine\n");
     while (block != -1){
         RecBuffer Buffer(block);
-        printf("block number is %d\n", block);
         union Attribute Record[ATTRCAT_NO_ATTRS];
         HeadInfo head;
         Buffer.getRecord(Record, slot);
-        printf("getRecord is working fine.\n");
         Buffer.getHeader(&head);
-        printf("getHeader() is working fine.\n");
         unsigned char* slotmap = (unsigned char *)malloc(sizeof(unsigned char) * head.numSlots);
 
         Buffer.getSlotMap(slotmap);
-        printf("getSlotMap() working. Slotmap is %s\n", slotmap);
         if (slot >= head.numSlots){
             block = head.rblock;
             slot = 0;
@@ -52,13 +44,10 @@ RecId BlockAccess::linearSearch(int relId, char attrName[ATTR_SIZE], union Attri
 
         AttrCatEntry attrCatBuf;
         AttrCacheTable::getAttrCatEntry(relId, attrName, &attrCatBuf);
-        printf("getAttrCatEntry working fine.\n attrCatBuf.attrName is %s attrCatBuf.attrType is %d\n attrCatBuf.offset is %d\n attrCatBuf.relName is %s\n", attrCatBuf.attrName, attrCatBuf.attrType, attrCatBuf.offset, attrCatBuf.relName);
         int offset = attrCatBuf.offset;
         Attribute* attrValCheck = (Attribute*)malloc(sizeof(Attribute) * head.numAttrs);
         Buffer.getRecord(attrValCheck, slot);
-        printf("getRecord() is working fine.\n");
         int cmpVal = compareAttrs(attrValCheck[offset], attrVal, attrCatBuf.attrType);
-        printf("reached compareAttrs\n");
         if (
             (op == NE && cmpVal != 0) ||    // if op is "not equal to"
             (op == LT && cmpVal < 0) ||     // if op is "less than"
@@ -76,13 +65,11 @@ RecId BlockAccess::linearSearch(int relId, char attrName[ATTR_SIZE], union Attri
             rec.block = block;
             rec.slot = slot;
             RelCacheTable::setSearchIndex(relId, &rec);
-            printf("inside if condition in linearSearch(); setSearchIndex working fine.\n");
             return RecId{block, slot};
         }
 
         slot++;
     }
-    printf("reached here; RecId = {-1, -1}\n");
     return RecId{-1, -1};
 }
 
@@ -154,13 +141,10 @@ int BlockAccess::renameAttribute(char relname[ATTR_SIZE], char oldName[ATTR_SIZE
     int op = 0;
     strcpy(relNameAttr.sVal, relname);
 
-    printf("Before first linearSearch in renameAttribute.\n");
     RecId ret = BlockAccess::linearSearch(RELCAT_RELID, (char *)RELCAT_ATTR_RELNAME, relNameAttr, op);
-    printf("After first linearSearch in renameAttribute.\n");
     if (ret.block == -1 && ret.slot == -1){
         return E_RELNOTEXIST;
     }
-    printf("Did not go through if condition.\n");
 
     RelCacheTable::resetSearchIndex(ATTRCAT_RELID);
     RecId attrToRenameRecId{-1, -1};
@@ -236,7 +220,6 @@ int BlockAccess::insert(int relId, Attribute* record){
     }
     if (rec_id.block == -1 && rec_id.slot == -1){
         if (relId == RELCAT_RELID){
-            printf("relId is RELCAT_RELID\n");
             return E_MAXRELATIONS;
         }
         RecBuffer Buffer;
@@ -323,7 +306,6 @@ int BlockAccess::search(int relId, Attribute* record, char attrName[ATTR_SIZE], 
 }
 
 int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
-    printf("relName is %s\n", relName);
     if (!strcmp(relName, RELCAT_RELNAME) || !strcmp(relName, ATTRCAT_RELNAME)){
         return E_NOTPERMITTED;
     }
@@ -334,9 +316,7 @@ int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
     strcpy(relNameAttr.sVal, relName);
 
     int op = 0;
-    printf("inside deleteRelation\n");
     RecId recId = BlockAccess::linearSearch(RELCAT_RELID, (char *)RELCAT_ATTR_RELNAME, relNameAttr, op);
-    printf("recId.block is %d and recId.slot is %d\n", recId.block, recId.slot);
     if (recId.block == -1 && recId.slot == -1){
         return E_RELNOTEXIST;
     }
@@ -414,7 +394,6 @@ int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
             }
 
             delBlock.releaseBlock();
-            printf("releaseBlock working\n");
         }
 
         // if (rootBlock != -1){
@@ -443,7 +422,6 @@ int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
     RelCacheTable::getRelCatEntry(ATTRCAT_RELID, &attrCat);
     attrCat.numRecs -= numberofAttributesDeleted;
     RelCacheTable::setRelCatEntry(ATTRCAT_RELID, &attrCat);
-    printf("all working in deleteRelation()\n");
     return SUCCESS;
 }
 
