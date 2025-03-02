@@ -93,21 +93,18 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
 
     int targetRelId = OpenRelTable::getRelId(targetRel);
     RelCacheTable::resetSearchIndex(srcRelId);
+    AttrCacheTable::resetSearchIndex(srcRelId, attr);
 
     Attribute record[src_nAttrs];
-    
     while (BlockAccess::search(srcRelId, record, attr, attrVal, op) >= 0){
         int retValinsert = BlockAccess::insert(targetRelId, record);
-
         if (retValinsert < 0){
             Schema::closeRel(targetRel);
             Schema::deleteRel(targetRel);
             return retValinsert;
         }
     }
-
     Schema::closeRel(targetRel);
-
     return SUCCESS;
     /************************
     The following code prints the contents of a relation directly to the output
@@ -217,6 +214,11 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
     //    return E_ATTRNOTEXIST if it returns the error
     int result = RelCacheTable::getRelCatEntry(srcRelId, &relCatEntry);
 
+    if (result != SUCCESS){
+        printf("Invalid getRelCatEntry()\n");
+        return result;
+    }
+
     int src_nAttrs = relCatEntry.numAttrs;
 
     char attr_names[src_nAttrs][ATTR_SIZE];
@@ -231,7 +233,6 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
     }
 
     int retValCreateRel = Schema::createRel(targetRel, src_nAttrs, attr_names, attr_types);
-
     if (retValCreateRel < 0){
         return retValCreateRel;
     }
@@ -245,12 +246,10 @@ int Algebra::project(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE]){
 
     int targetRelId = OpenRelTable::getRelId(targetRel);
     RelCacheTable::resetSearchIndex(srcRelId);
-
     Attribute record[src_nAttrs];
     
     while (BlockAccess::project(srcRelId, record) >= 0){
         int retValinsert = BlockAccess::insert(targetRelId, record);
-
         if (retValinsert < 0){
             Schema::closeRel(targetRel);
             Schema::deleteRel(targetRel);

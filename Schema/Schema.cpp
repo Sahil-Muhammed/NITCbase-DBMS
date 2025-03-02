@@ -55,7 +55,7 @@ int Schema::renameAttr(char* relName, char* oldAttrName, char* newAttrName){
 int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int attrType[]){
 
     Attribute relNameAsAttribute;
-    strcpy(relNameAsAttribute.sVal, relName);
+    strcpy((char *)relNameAsAttribute.sVal, (const char*)relName);
     RecId targetRelId = {-1, -1};
     RelCacheTable::resetSearchIndex(RELCAT_RELID);
     targetRelId = BlockAccess::linearSearch(RELCAT_RELID, (char *)RELCAT_ATTR_RELNAME, relNameAsAttribute, EQ);
@@ -63,9 +63,9 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
         return E_RELEXIST;
     }
 
-    for (int i = 0; i < nAttrs; ++i){
+    for (int i = 0; i < nAttrs - 1; ++i){
         for (int j = i+1; j < nAttrs; ++j){
-            if (!strcmp(attrs[i], attrs[j])){
+            if (strcmp(attrs[i], attrs[j]) == 0){
                 return E_DUPLICATEATTR;
             }
         }
@@ -100,19 +100,16 @@ int Schema::createRel(char relName[], int nAttrs, char attrs[][ATTR_SIZE], int a
 }
 
 int Schema::deleteRel(char* relName){
-    if (!strcmp(relName, RELCAT_RELNAME) || !strcmp(relName, ATTRCAT_RELNAME)){
+    if (strcmp(relName, RELCAT_RELNAME) == 0 || strcmp(relName, ATTRCAT_RELNAME) == 0){
         return E_NOTPERMITTED;
     }
     int relId = OpenRelTable::getRelId(relName);
 
-    if (relId != E_RELNOTOPEN){
+    if (relId >= 0 && relId < MAX_OPEN){
         return E_RELOPEN;
     }
 
     int ret = BlockAccess::deleteRelation(relName);
-    if (ret != SUCCESS){
-        return ret;
-    }
 
     return ret;
 }

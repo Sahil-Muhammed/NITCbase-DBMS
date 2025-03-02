@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <iostream>
 
 // the declarations for these functions can be found in "BlockBuffer.h"
 
@@ -9,6 +10,7 @@ BlockBuffer::BlockBuffer(char blockType){
   int res = 0;
   switch(blockType){
     case 'R': 
+      std::cout << this->blockNum << "\n";
       res = getFreeBlock(REC);
       break;
     case 'I':
@@ -337,10 +339,73 @@ void BlockBuffer::releaseBlock(){
     int bufNum = StaticBuffer::getBufferNum(blockNum);
     if (bufNum >= 0 && bufNum < BUFFER_CAPACITY){
       StaticBuffer::metainfo[bufNum].free = true;
-      return;
     }
 
-    StaticBuffer::blockAllocMap[this->blockNum] = UNUSED_BLK;
+    StaticBuffer::blockAllocMap[blockNum] = UNUSED_BLK;
     this->blockNum = INVALID_BLOCKNUM;
   }
+}
+
+IndBuffer::IndBuffer(char BlockType) : BlockBuffer(BlockType){}
+
+IndBuffer::IndBuffer(int blockNum) : BlockBuffer(blockNum){}
+
+IndInternal::IndInternal() : IndBuffer('I'){}
+
+IndInternal::IndInternal(int blockNum) : IndBuffer(blockNum){}
+
+IndLeaf::IndLeaf() : IndBuffer('L'){}
+
+IndLeaf::IndLeaf(int blockNum) : IndBuffer(blockNum){}
+
+int IndInternal::getEntry(void* ptr, int indexNum){
+  if (indexNum < 0 || indexNum >= MAX_KEYS_INTERNAL){
+    return E_OUTOFBOUND;
+  }
+
+  unsigned char* bufferPtr;
+
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+
+  if (ret != SUCCESS){
+    return ret;
+  }
+
+  struct InternalEntry* internalentry = (struct InternalEntry*)ptr;
+
+  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * 20);
+
+  memcpy(&(internalentry->lChild), entryPtr, sizeof(int32_t));
+  memcpy(&(internalentry->attrVal), entryPtr + 4, sizeof(Attribute));
+  memcpy(&(internalentry->rChild), entryPtr + 20, sizeof(int32_t));
+
+  return SUCCESS;
+}
+
+int IndLeaf::getEntry(void* ptr, int indexNum){
+  if (indexNum < 0 || indexNum >= MAX_KEYS_INTERNAL){
+    return E_OUTOFBOUND;
+  }
+
+  unsigned char* bufferPtr;
+
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+
+  if (ret != SUCCESS){
+    return ret;
+  }
+
+  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * LEAF_ENTRY_SIZE);
+
+  memcpy((struct Index*)ptr, entryPtr, LEAF_ENTRY_SIZE);
+
+  return SUCCESS;
+}
+
+int IndInternal::setEntry(void *ptr, int indexNum) {
+  return 0;
+}
+
+int IndLeaf::setEntry(void *ptr, int indexNum) {
+  return 0;
 }

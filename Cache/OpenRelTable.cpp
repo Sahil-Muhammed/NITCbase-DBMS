@@ -105,7 +105,7 @@ OpenRelTable::~OpenRelTable(){
         AttrCacheTable::attrCache[i] = nullptr;
     }*/
     for (int i = 2; i < MAX_OPEN; ++i){
-        if (!OpenRelTable::tableMetaInfo[i].free){
+        if (OpenRelTable::tableMetaInfo[i].free == false){
             OpenRelTable::closeRel(i);
         }
     }
