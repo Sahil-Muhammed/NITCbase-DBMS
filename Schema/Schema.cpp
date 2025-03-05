@@ -113,3 +113,49 @@ int Schema::deleteRel(char* relName){
 
     return ret;
 }
+
+int Schema::createIndex(char relName[ATTR_SIZE], char attrName[ATTR_SIZE]){
+    if (strcmp(RELCAT_RELNAME, relName) == 0 || strcmp(ATTRCAT_RELNAME, relName) == 0){
+        return E_NOTPERMITTED;
+    }
+
+    int relId = OpenRelTable::getRelId(relName);
+
+    if (relId == E_RELNOTOPEN){
+        return E_RELNOTOPEN;
+    }
+
+    return BPlusTree::bPlusCreate(relId, attrName);
+}
+
+int Schema::dropIndex(char relName[ATTR_SIZE], char attrName[ATTR_SIZE]){
+    if (strcmp(RELCAT_RELNAME, relName) == 0 || strcmp(ATTRCAT_RELNAME, relName) == 0){
+        return E_NOTPERMITTED;
+    }
+
+    int relId = OpenRelTable::getRelId(relName);
+
+    if (relId == E_RELNOTOPEN){
+        return E_RELNOTOPEN;
+    }
+
+    AttrCatEntry attrCatBuf;
+    int res = AttrCacheTable::getAttrCatEntry(relId, attrName, &attrCatBuf);
+
+    if (res != SUCCESS){
+        return E_ATTRNOTEXIST;
+    }
+
+    int rootblock = attrCatBuf.rootBlock;
+
+    if (rootblock == -1){
+        return E_NOINDEX;
+    }
+
+    BPlusTree::bPlusDestroy(rootblock);
+
+    attrCatBuf.rootBlock = -1;
+    AttrCacheTable::setAttrCatEntry(relId, attrName, &attrCatBuf);
+
+    return SUCCESS;
+}

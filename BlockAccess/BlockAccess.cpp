@@ -265,6 +265,7 @@ int BlockAccess::insert(int relId, Attribute* record){
     }
     RecBuffer NewBlock(rec_id.block);
     int res = NewBlock.setRecord(record, rec_id.slot);
+    //printf("Record[0].sVal = %s\n", record[0].sVal);
     if (res != SUCCESS){
         printf("Not successful in setRecord.\n");
         exit(1);
@@ -282,6 +283,24 @@ int BlockAccess::insert(int relId, Attribute* record){
 
     relCatEntry.numRecs += 1;
     RelCacheTable::setRelCatEntry(relId, &relCatEntry);
+
+    int flag = SUCCESS;
+    for (int k = 0; k < numOfAttrs; ++k){
+        AttrCatEntry attrCatBuf;
+        AttrCacheTable::getAttrCatEntry(relId, k, &attrCatBuf);
+
+        int rootBlock = attrCatBuf.rootBlock;
+
+        if (rootBlock != -1){
+            int retVal = BPlusTree::bPlusInsert(relId, attrCatBuf.attrName, record[k], rec_id);
+
+            if (retVal == E_DISKFULL){
+                flag = E_INDEX_BLOCKS_RELEASED;
+            }
+        }
+    }
+
+    return flag;
     return SUCCESS;
 }
 
@@ -406,9 +425,9 @@ int BlockAccess::deleteRelation(char relName[ATTR_SIZE]){
             delBlock.releaseBlock();
         }
 
-        // if (rootBlock != -1){
-        //     BPlusTree:bPlusDestroy();
-        // }
+        if (rootBlock != -1){
+            BPlusTree::bPlusDestroy(rootBlock);
+        }
     }
 
     HeadInfo relCatHead;

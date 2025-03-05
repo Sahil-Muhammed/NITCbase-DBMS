@@ -164,7 +164,7 @@ int Algebra::select(char srcRel[ATTR_SIZE], char targetRel[ATTR_SIZE], char attr
 
 int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE]){
 
-    if (!strcmp(relName, ATTRCAT_RELNAME) || !strcmp(relName, RELCAT_RELNAME)){
+    if (strcmp(relName, ATTRCAT_RELNAME) == 0 || strcmp(relName, RELCAT_RELNAME) == 0){
         return E_NOTPERMITTED;
     }
     int relId = OpenRelTable::getRelId(relName);
@@ -188,6 +188,7 @@ int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE
         if (type == NUMBER){
             if (isNumber(record[i])){
                 recordValues[i].nVal = atof(record[i]);
+                //printf("recordValues[%d].nVal = %f\n", i, atof(record[i]));
             }
             else{
                 return E_ATTRTYPEMISMATCH;
@@ -196,6 +197,7 @@ int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE
 
         else if (type == STRING){
             strcpy(recordValues[i].sVal, record[i]);
+            //printf("recordValues[%d].sVal = %s\n", i, record[i]);
         }
     }
     int retVal = BlockAccess::insert(relId, recordValues);

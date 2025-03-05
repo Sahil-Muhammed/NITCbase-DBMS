@@ -403,9 +403,59 @@ int IndLeaf::getEntry(void* ptr, int indexNum){
 }
 
 int IndInternal::setEntry(void *ptr, int indexNum) {
-  return 0;
+  if (indexNum < 0 || indexNum >= MAX_KEYS_INTERNAL){
+    return E_OUTOFBOUND;
+  }
+
+  unsigned char* bufferPtr;
+
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+
+  if (ret != SUCCESS){
+    return ret;
+  }
+
+  struct InternalEntry* internalentry = (struct InternalEntry*)ptr;
+
+  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * 20);
+
+  memcpy(entryPtr, &(internalentry->lChild), sizeof(int32_t));
+  memcpy(entryPtr + 4, &(internalentry->attrVal), ATTR_SIZE);
+  memcpy(entryPtr + 20, &(internalentry->rChild), sizeof(int32_t));
+
+  int res = StaticBuffer::setDirtyBit(blockNum);
+
+  if (res != SUCCESS){
+    printf("some problem with setting dirty bit\n");
+    return res;
+  }
+
+  return SUCCESS;
 }
 
 int IndLeaf::setEntry(void *ptr, int indexNum) {
-  return 0;
+  if (indexNum < 0 || indexNum >= MAX_KEYS_LEAF){
+    return E_OUTOFBOUND;
+  }
+
+  unsigned char* bufferPtr;
+
+  int ret = loadBlockAndGetBufferPtr(&bufferPtr);
+
+  if (ret != SUCCESS){
+    return ret;
+  }
+
+  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * LEAF_ENTRY_SIZE);
+
+  memcpy(entryPtr, (struct Index*)ptr, LEAF_ENTRY_SIZE);
+
+  int res = StaticBuffer::setDirtyBit(this->blockNum);
+
+  if (res != SUCCESS){
+    printf("Some problem with setting dirty bit.\n");
+    return res;
+  }
+
+  return SUCCESS;
 }
