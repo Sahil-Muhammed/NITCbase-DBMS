@@ -306,9 +306,9 @@ int BPlusTree::insertIntoLeaf(int relId, char attrName[ATTR_SIZE], int blockNum,
             indices[i] = indexEntry;
             flag = 1;
 
-            for (int j = i+1; j <= head.numEntries; ++j){
+            for (int j = i; j < head.numEntries; ++j){ //messed up indexing used earlier
                 leaf.getEntry(&entry, j);
-                indices[j] = entry;
+                indices[j+1] = entry;
             }
             break;
         }
@@ -559,7 +559,7 @@ int BPlusTree::createNewRoot(int relId, char attrName[ATTR_SIZE], Attribute attr
     lChildHead.pblock = newRootBlkNum;
     rChildHead.pblock = newRootBlkNum;
     lBlock.setHeader(&lChildHead); //didn't set the header earlier
-    rBlock.getHeader(&rChildHead); //didn't set the header earlier
+    rBlock.setHeader(&rChildHead); //didn't set the header earlier
 
     attrCatBuf.rootBlock = newRootBlkNum;
     AttrCacheTable::setAttrCatEntry(relId, attrName, &attrCatBuf);
