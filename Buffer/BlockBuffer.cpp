@@ -10,7 +10,6 @@ BlockBuffer::BlockBuffer(char blockType){
   int res = 0;
   switch(blockType){
     case 'R': 
-      std::cout << this->blockNum << "\n";
       res = getFreeBlock(REC);
       break;
     case 'I':
@@ -31,7 +30,7 @@ BlockBuffer::BlockBuffer(char blockType){
 
 BlockBuffer::BlockBuffer(int blockNum) {
   // initialise this.blockNum with the argument
-  this->blockNum=blockNum;
+    this->blockNum = blockNum;
 }
 
 RecBuffer::RecBuffer() : BlockBuffer('R') {}
@@ -51,12 +50,13 @@ int BlockBuffer::getHeader(struct HeadInfo *head) {
   //Disk::readBlock(buffer, this->blockNum);
 
   // populate the numEntries, numAttrs and numSlots fields in *head
-  memcpy(&head->numSlots, bufferPtr + 24, 4);
+  memcpy(&head->blockType, bufferPtr, 4); //missed this line earlier
+  memcpy(&head->pblock, bufferPtr + 4, 4);
+  memcpy(&head->lblock, bufferPtr + 8, 4);
+  memcpy(&head->rblock, bufferPtr + 12, 4);
   memcpy(&head->numEntries, bufferPtr + 16, 4);
   memcpy(&head->numAttrs, bufferPtr + 20, 4);
-  memcpy(&head->rblock, bufferPtr + 12, 4);
-  memcpy(&head->lblock, bufferPtr + 8, 4);
-  memcpy(&head->pblock, bufferPtr + 4, 4);
+  memcpy(&head->numSlots, bufferPtr + 24, 4);
 
   return SUCCESS;
 }
@@ -75,6 +75,10 @@ int RecBuffer::getRecord(union Attribute *rec, int slotNum) {
 
   int attrCount = head.numAttrs;
   int slotCount = head.numSlots;
+
+  if (slotNum < 0 || slotNum >= BLOCK_SIZE){  //this check was non-existent earlier -_-
+    return E_OUTOFBOUND;
+  }
   //unsigned char buffer[BLOCK_SIZE];
 
   // read the block at this.blockNum into a buffer
@@ -113,9 +117,9 @@ int RecBuffer::setRecord(union Attribute *rec, int slotNum) {
   int slotCount = head.numSlots;
   unsigned char buffer[BLOCK_SIZE];
 
-  if (slotNum < 0 || slotNum > slotCount){
-    return E_OUTOFBOUND;
-  }
+    if (slotNum < 0 || slotNum > BLOCK_SIZE){ //used to check if slotNum > slotCount earlier
+        return E_OUTOFBOUND;
+    }
 
   // read the block at this.blockNum into a buffer
   //Disk::readBlock(buffer, this->blockNum);
@@ -152,14 +156,17 @@ int BlockBuffer::loadBlockAndGetBufferPtr(unsigned char** bufferPtr){
   int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
 
   if (bufferNum != E_BLOCKNOTINBUFFER){
+
     for (int i = 0; i < BUFFER_CAPACITY; ++i){
-      if (i == bufferNum){
-        StaticBuffer::metainfo[i].timeStamp = 0;
+
+      if (StaticBuffer::metainfo[i].free == false){
+        StaticBuffer::metainfo[i].timeStamp++;
       }
-      else{
-        StaticBuffer::metainfo[i].timeStamp += 1;
-      }
+
     }
+
+    StaticBuffer::metainfo[bufferNum].timeStamp = 0;
+
   }
   
   else{ 
@@ -320,9 +327,6 @@ int BlockBuffer::getFreeBlock(int blockType){
 }
 
 int BlockBuffer::getBlockNum(){
-  if (this->blockNum == -1){
-    printf("chinna problem chetta\n");
-  }
   return this->blockNum;
 }
 
@@ -330,20 +334,17 @@ int BlockBuffer::getBlockNum(){
 
 void BlockBuffer::releaseBlock(){
   
-  if (blockNum == INVALID_BLOCKNUM || StaticBuffer::blockAllocMap[blockNum] == UNUSED_BLK){
-    blockNum == INVALID_BLOCKNUM ? printf("Invalid blockNum.\n") : printf("Block is unused.\n");
-    return;
-  }
-
-  else{
-    int bufNum = StaticBuffer::getBufferNum(blockNum);
-    if (bufNum >= 0 && bufNum < BUFFER_CAPACITY){
-      StaticBuffer::metainfo[bufNum].free = true;
+    if (blockNum == INVALID_BLOCKNUM || StaticBuffer::blockAllocMap[blockNum] == UNUSED_BLK){
+        blockNum == INVALID_BLOCKNUM ? printf("Invalid blockNum.\n") : printf("Block is unused.\n");
+        return;
     }
-
+    int bufNum = StaticBuffer::getBufferNum(blockNum);
+    if (bufNum == E_BLOCKNOTINBUFFER){ //was bufNum >=0 && bufNum < BUFFER_CAPACITY
+        return;
+    }
+    StaticBuffer::metainfo[bufNum].free = true;
     StaticBuffer::blockAllocMap[blockNum] = UNUSED_BLK;
     this->blockNum = INVALID_BLOCKNUM;
-  }
 }
 
 IndBuffer::IndBuffer(char BlockType) : BlockBuffer(BlockType){}
@@ -359,7 +360,7 @@ IndLeaf::IndLeaf() : IndBuffer('L'){}
 IndLeaf::IndLeaf(int blockNum) : IndBuffer(blockNum){}
 
 int IndInternal::getEntry(void* ptr, int indexNum){
-  if (indexNum < 0 || indexNum >= MAX_KEYS_INTERNAL){
+  if (indexNum < 0 || indexNum > MAX_KEYS_INTERNAL){
     return E_OUTOFBOUND;
   }
 
@@ -373,7 +374,7 @@ int IndInternal::getEntry(void* ptr, int indexNum){
 
   struct InternalEntry* internalentry = (struct InternalEntry*)ptr;
 
-  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * 20);
+  unsigned char* entryPtr = bufferPtr + HEADER_SIZE + (indexNum * 20);  //used INTERNAL_ENTRY_SIZE instead of 20 earlier
 
   memcpy(&(internalentry->lChild), entryPtr, sizeof(int32_t));
   memcpy(&(internalentry->attrVal), entryPtr + 4, sizeof(Attribute));

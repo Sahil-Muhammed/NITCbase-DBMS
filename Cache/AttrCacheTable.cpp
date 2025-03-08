@@ -210,4 +210,3 @@ int AttrCacheTable::setAttrCatEntry(int relId, int offset, AttrCatEntry* attrCat
 
     return E_ATTRNOTEXIST;
 }
-

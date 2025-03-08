@@ -186,7 +186,7 @@ int BlockAccess::renameAttribute(char relname[ATTR_SIZE], char oldName[ATTR_SIZE
 int BlockAccess::insert(int relId, Attribute* record){
     RelCatEntry relCatEntry;
     RelCacheTable::getRelCatEntry(relId, &relCatEntry);
-    int blockNum = relCatEntry.firstBlk;
+    int blockNum = relCatEntry.lastBlk;
 
     RecId rec_id = {-1, -1};
 
